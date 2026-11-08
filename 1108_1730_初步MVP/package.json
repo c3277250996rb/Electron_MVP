@@ -1,0 +1,18 @@
+{
+  "name": "electron-custom-shell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A lightweight Electron application shell",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js && node --check src/browser-utils.js && node --check src/browser-data.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3"
+  }
+}

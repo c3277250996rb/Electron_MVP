@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' file:; style-src 'self' 'unsafe-inline'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>轻量浏览器</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        color: #202124;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
+
+      .browser-chrome {
+        height: 96px;
+        user-select: none;
+      }
+
+      .tab-strip {
+        align-items: flex-end;
+        background: #e9ebef;
+        display: flex;
+        gap: 5px;
+        height: 40px;
+        overflow-x: auto;
+        padding: 6px 8px 0;
+      }
+
+      .tab {
+        align-items: center;
+        background: #dfe2e7;
+        border: 0;
+        border-radius: 9px 9px 0 0;
+        color: #30343b;
+        display: flex;
+        flex: 0 1 220px;
+        font-size: 13px;
+        gap: 9px;
+        height: 34px;
+        max-width: 240px;
+        min-width: 150px;
+        padding: 0 10px 0 12px;
+      }
+
+      .tab.active {
+        background: #fff;
+      }
+
+      .tab-indicator {
+        background: #4285f4;
+        border-radius: 50%;
+        flex: 0 0 12px;
+        height: 12px;
+      }
+
+      .tab-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tab-close,
+      .new-tab,
+      .navigation-control,
+      .toolbar-action {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-radius: 50%;
+        color: #5f6670;
+        display: flex;
+        flex: 0 0 32px;
+        height: 32px;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .tab-close,
+      .new-tab {
+        flex-basis: 24px;
+        height: 24px;
+      }
+
+      .tab-close {
+        font-size: 17px;
+        margin-left: auto;
+        opacity: 0;
+      }
+
+      .tab:hover .tab-close,
+      .tab.active .tab-close {
+        opacity: 1;
+      }
+
+      .new-tab {
+        align-self: center;
+        font-size: 19px;
+      }
+
+      .tab-close:hover,
+      .new-tab:hover,
+      .navigation-control:hover:not(:disabled),
+      .toolbar-action:hover {
+        background: #e9edf2;
+      }
+
+      .navigation-bar {
+        align-items: center;
+        background: #fff;
+        border-bottom: 1px solid #e1e4e8;
+        display: flex;
+        gap: 6px;
+        height: 56px;
+        padding: 0 12px;
+      }
+
+      .navigation-control,
+      .toolbar-action {
+        font-size: 18px;
+      }
+
+      .address-field {
+        align-items: center;
+        background: #f1f3f5;
+        border: 1px solid transparent;
+        border-radius: 18px;
+        display: flex;
+        flex: 1;
+        height: 36px;
+        min-width: 80px;
+        padding: 0 12px;
+      }
+
+      .address-field:focus-within {
+        background: #fff;
+        border-color: #9abcf7;
+        box-shadow: 0 0 0 2px #e6efff;
+      }
+
+      #address-input {
+        background: transparent;
+        border: 0;
+        color: #30343b;
+        flex: 1;
+        font-size: 13px;
+        min-width: 0;
+        outline: 0;
+      }
+
+      #address-input::placeholder {
+        color: #747b86;
+      }
+
+      .navigation-control {
+        border-radius: 50%;
+        flex-basis: 32px;
+        font-size: 19px;
+      }
+
+      .toolbar-action {
+        flex-basis: 30px;
+        font-size: 17px;
+      }
+
+      #bookmark-button[aria-pressed="true"] {
+        color: #d99a00;
+      }
+
+      #browser-panel[hidden],
+      #tab-error[hidden] {
+        display: none;
+      }
+
+      #browser-panel {
+        background: #fff;
+        bottom: 0;
+        left: 0;
+        overflow: auto;
+        padding: 24px max(24px, calc((100% - 900px) / 2));
+        position: fixed;
+        right: 0;
+        top: 96px;
+        z-index: 20;
+      }
+
+      .panel-heading {
+        align-items: center;
+        border-bottom: 1px solid #e6e8eb;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        margin-bottom: 14px;
+        padding-bottom: 14px;
+      }
+
+      .panel-heading h1 {
+        font-size: 21px;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .panel-heading-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .panel-button,
+      .entry-button {
+        background: #f1f3f5;
+        border: 0;
+        border-radius: 7px;
+        color: #343a40;
+        font-size: 13px;
+        padding: 8px 12px;
+      }
+
+      .panel-button:hover,
+      .entry-button:hover {
+        background: #e7ebf0;
+      }
+
+      .panel-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .panel-entry {
+        align-items: center;
+        border: 1px solid #e7e9ed;
+        border-radius: 9px;
+        display: flex;
+        gap: 14px;
+        min-height: 64px;
+        padding: 10px 12px;
+      }
+
+      .entry-details {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .entry-title,
+      .entry-url {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .entry-title {
+        color: #282d33;
+        font-size: 14px;
+        margin-bottom: 5px;
+      }
+
+      .entry-url {
+        color: #747b86;
+        font-size: 12px;
+      }
+
+      .entry-button {
+        flex: 0 0 auto;
+      }
+
+      .panel-empty {
+        color: #747b86;
+        padding: 32px 8px;
+        text-align: center;
+      }
+
+      #tab-error {
+        background: #fff2f0;
+        border: 1px solid #ffd1ca;
+        border-radius: 6px;
+        color: #a62a18;
+        font-size: 11px;
+        left: 12px;
+        max-width: 70%;
+        overflow: hidden;
+        padding: 3px 8px;
+        position: fixed;
+        right: 12px;
+        text-overflow: ellipsis;
+        top: 70px;
+        white-space: nowrap;
+        z-index: 30;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="browser-chrome" aria-label="浏览器工具栏">
+      <div id="tab-list" class="tab-strip" role="tablist" aria-label="标签页"></div>
+      <nav class="navigation-bar" aria-label="网页导航">
+        <button id="back-button" class="navigation-control" type="button" aria-label="后退" disabled>‹</button>
+        <button id="forward-button" class="navigation-control" type="button" aria-label="前进" disabled>›</button>
+        <button id="reload-button" class="navigation-control" type="button" aria-label="刷新">↻</button>
+        <form id="address-form" class="address-field">
+          <input
+            id="address-input"
+            type="text"
+            aria-label="地址栏"
+            placeholder="输入网址或搜索内容"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+          />
+        </form>
+        <button
+          id="bookmark-button"
+          class="toolbar-action"
+          type="button"
+          aria-label="添加书签"
+          aria-pressed="false"
+          title="添加/移除书签"
+        >☆</button>
+        <button id="bookmarks-button" class="toolbar-action" type="button" aria-label="书签" title="书签">▤</button>
+        <button id="history-button" class="toolbar-action" type="button" aria-label="历史记录" title="历史记录">◷</button>
+        <button id="downloads-button" class="toolbar-action" type="button" aria-label="下载" title="下载">↓</button>
+      </nav>
+    </header>
+    <output id="tab-error" role="status" aria-live="polite" hidden></output>
+    <section id="browser-panel" aria-label="浏览器资料面板" hidden>
+      <div class="panel-heading">
+        <h1 id="panel-title"></h1>
+        <div class="panel-heading-actions">
+          <button id="clear-history-button" class="panel-button" type="button" hidden>清空历史</button>
+          <button id="close-panel-button" class="panel-button" type="button">关闭</button>
+        </div>
+      </div>
+      <div id="panel-list" class="panel-list"></div>
+    </section>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
